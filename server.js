@@ -1,16 +1,30 @@
 import express from "express";
+import multer from "multer";
 import cors from "cors";
-import bodyParser from "body-parser";
+import http from "http";
+import { Server } from "socket.io";
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json({ limit: "10mb" })); // Handle base64 images
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 
-app.post("/receive-frame", (req, res) => {
-  const { frame, location } = req.body;
-  console.log("Frame received from:", location);
+app.use(cors());
+app.use(express.json({ limit: "10mb" })); // Increase limit for image data
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Endpoint to receive uploaded videos
+app.post("/upload", upload.single("video"), (req, res) => {
+  console.log("Video received:", req.file.originalname);
+  res.json({ message: "Video uploaded!" });
+});
+
+// New endpoint to receive frames from the frontend
+app.post("/stream", (req, res) => {
+  const { frame } = req.body;
+  console.log("Frame received:", frame.substring(0, 50)); // Log part of frame data for verification
   res.json({ message: "Frame received successfully" });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Online Server running on port ${PORT}`));
+server.listen(5000, () => console.log("✅ Server running on port 5000"));
